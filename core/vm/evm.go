@@ -167,7 +167,18 @@ func NewEVM(blockCtx BlockContext, txCtx TxContext, statedb StateDB, chainConfig
 	}
 	evm.interpreter = NewEVMInterpreter(evm)
 	evm.fhevmEnvironment.interpreter = evm.interpreter
-	fhevm.InitFhevm(&evm.fhevmEnvironment)
+
+	// Zama's code calls `fhevm.InitFhevm(&evm.fhevmEnvironment)` here. See:
+	// https://github.com/zama-ai/zbc-go-ethereum/blob/77474a7ae5ad011a647bdaab527ba6417c6fccb0/core/vm/evm.go#L170
+	//
+	// However, with our TEE binary, we can't do it here. That's because
+	// InitFhevm needs to access Cosmos-side state via the RPC client, but the
+	// evm ID and sdk.Context are not yet set on the Cosmos side at this point
+	// in execution.
+	//
+	// In our case, we simply need to make sure to call fhevm.InitFhevm some
+	// time after this, and before any other execution call. We do it inside
+	// the `keeper#startEVM` function in the Ethermint x/evm module.
 	return evm
 }
 
