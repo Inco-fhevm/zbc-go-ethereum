@@ -193,7 +193,7 @@ func RunPrecompiledContract(p PrecompiledContract, accessibleState PrecompileAcc
 type fheLib struct{}
 
 func (c *fheLib) RequiredGas(accessibleState PrecompileAccessibleState, suppliedGas uint64, input []byte) uint64 {
-	return fhevm.FheLibRequiredGas(accessibleState.Interpreter().evm.FhevmEnvironment(), input)
+	return fhevm.FheLibRequiredGas(accessibleState.Interpreter().evm.FhevmEnvironment(), suppliedGas, input)
 }
 
 func (c *fheLib) Run(accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, readOnly bool) ([]byte, error) {
