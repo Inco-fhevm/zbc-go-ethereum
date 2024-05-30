@@ -81,7 +81,6 @@ func NewEVMTxContext(msg *Message) vm.TxContext {
 		Origin:     msg.From,
 		GasPrice:   new(big.Int).Set(msg.GasPrice),
 		GasLimit:   msg.GasLimit,
-		GasUsed:    0,
 		BlobHashes: msg.BlobHashes,
 	}
 	if msg.BlobGasFeeCap != nil {

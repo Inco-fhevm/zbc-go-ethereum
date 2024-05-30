@@ -73,7 +73,7 @@ func fuzz(id byte, data []byte) int {
 	// Even on bad input, it should not crash, so we still test the gas calc
 	precompile := vm.PrecompiledContractsBLS[common.BytesToAddress([]byte{id})]
 	// RequiredGas only uses the input argument, the rest can be nullified
-	gas := precompile.RequiredGas(nil, data)
+	gas := precompile.RequiredGas(nil, 0, data)
 	if !checkInput(id, len(data)) {
 		return 0
 	}

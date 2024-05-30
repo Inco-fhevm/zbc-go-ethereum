@@ -86,14 +86,8 @@ type TxContext struct {
 	Origin     common.Address // Provides information for ORIGIN
 	GasPrice   *big.Int       // Provides information for GASPRICE (and is used to zero the basefee if NoBaseFee is set)
 	GasLimit   uint64         // Transaction gas limit
-	GasUsed    uint64         // Gas used in current Transaction
 	BlobHashes []common.Hash  // Provides information for BLOBHASH
 	BlobFeeCap *big.Int       // Is used to zero the blobbasefee if NoBaseFee is set
-}
-
-// UpdateUsedGas calculates total gas used in current TxContext
-func (ctx *TxContext) UpdateUsedGas(gasUsed uint64) {
-	ctx.GasUsed += gasUsed
 }
 
 // EVM is the Ethereum Virtual Machine base object and provides
@@ -625,9 +619,4 @@ func (evm *FhevmImplementation) OtelContext() context.Context {
 // GasLimit returns the gas limit of the current transaction context.
 func (evm *FhevmImplementation) GasLimit() uint64 {
 	return evm.interpreter.evm.GasLimit
-}
-
-// GasUsed returns the gas used in the current transaction context.
-func (evm *FhevmImplementation) GasUsed() uint64 {
-	return evm.interpreter.evm.GasUsed
 }
