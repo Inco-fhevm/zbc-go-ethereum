@@ -43,7 +43,7 @@ type PrecompileAccessibleState interface {
 // requires a deterministic gas count based on the input size of the Run method of the
 // contract.
 type PrecompiledContract interface {
-	RequiredGas(accessibleState PrecompileAccessibleState, input []byte) uint64 // RequiredGas calculates the contract gas use
+	RequiredGas(accessibleState PrecompileAccessibleState, suppliedGas uint64, input []byte) uint64 // RequiredGas calculates the contract gas use
 	Run(accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, readOnly bool) ([]byte, error)
 }
 
@@ -180,7 +180,7 @@ func ActivePrecompiles(rules params.Rules) []common.Address {
 // - the _remaining_ gas,
 // - any error that occurred
 func RunPrecompiledContract(p PrecompiledContract, accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64) (ret []byte, remainingGas uint64, err error) {
-	gasCost := p.RequiredGas(accessibleState, input)
+	gasCost := p.RequiredGas(accessibleState, suppliedGas, input)
 	if suppliedGas < gasCost {
 		return nil, 0, ErrOutOfGas
 	}
