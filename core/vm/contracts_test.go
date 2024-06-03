@@ -131,7 +131,7 @@ func testPrecompiled(addr string, test precompiledTest, t *testing.T) {
 	in := common.Hex2Bytes(test.Input)
 	state := newTestState()
 	state.interpreter.readOnly = false
-	gas := p.RequiredGas(state, in)
+	gas := p.RequiredGas(state, 0, in)
 	t.Run(fmt.Sprintf("%s-Gas=%d", test.Name, gas), func(t *testing.T) {
 		if res, _, err := RunPrecompiledContract(p, state, common.HexToAddress(addr), common.HexToAddress(addr), in, gas); err != nil {
 			t.Error(err)
@@ -154,7 +154,7 @@ func testPrecompiledOOG(addr string, test precompiledTest, t *testing.T) {
 	in := common.Hex2Bytes(test.Input)
 	state := newTestState()
 	state.interpreter.readOnly = false
-	gas := p.RequiredGas(state, in) - 1
+	gas := p.RequiredGas(state, 0, in) - 1
 
 	t.Run(fmt.Sprintf("%s-Gas=%d", test.Name, gas), func(t *testing.T) {
 		_, _, err := RunPrecompiledContract(p, state, common.HexToAddress(addr), common.HexToAddress(addr), in, gas)
@@ -174,7 +174,7 @@ func testPrecompiledFailure(addr string, test precompiledFailureTest, t *testing
 	in := common.Hex2Bytes(test.Input)
 	state := newTestState()
 	state.interpreter.readOnly = false
-	gas := p.RequiredGas(state, in)
+	gas := p.RequiredGas(state, 0, in)
 	t.Run(test.Name, func(t *testing.T) {
 		_, _, err := RunPrecompiledContract(p, state, common.HexToAddress(addr), common.HexToAddress(addr), in, gas)
 		if err.Error() != test.ExpectedError {
@@ -196,7 +196,7 @@ func benchmarkPrecompiled(addr string, test precompiledTest, bench *testing.B) {
 	in := common.Hex2Bytes(test.Input)
 	state := newTestState()
 	state.interpreter.readOnly = false
-	reqGas := p.RequiredGas(state, in)
+	reqGas := p.RequiredGas(state, 0, in)
 
 	var (
 		res  []byte

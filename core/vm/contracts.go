@@ -43,7 +43,7 @@ type PrecompileAccessibleState interface {
 // requires a deterministic gas count based on the input size of the Run method of the
 // contract.
 type PrecompiledContract interface {
-	RequiredGas(accessibleState PrecompileAccessibleState, input []byte) uint64 // RequiredGas calculates the contract gas use
+	RequiredGas(accessibleState PrecompileAccessibleState, suppliedGas uint64, input []byte) uint64 // RequiredGas calculates the contract gas use
 	Run(accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, readOnly bool) ([]byte, error)
 }
 
@@ -180,7 +180,7 @@ func ActivePrecompiles(rules params.Rules) []common.Address {
 // - the _remaining_ gas,
 // - any error that occurred
 func RunPrecompiledContract(p PrecompiledContract, accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64) (ret []byte, remainingGas uint64, err error) {
-	gasCost := p.RequiredGas(accessibleState, input)
+	gasCost := p.RequiredGas(accessibleState, suppliedGas, input)
 	if suppliedGas < gasCost {
 		return nil, 0, ErrOutOfGas
 	}
@@ -192,8 +192,8 @@ func RunPrecompiledContract(p PrecompiledContract, accessibleState PrecompileAcc
 // fheLib calls into the different precompile functions available in the fhevm
 type fheLib struct{}
 
-func (c *fheLib) RequiredGas(accessibleState PrecompileAccessibleState, input []byte) uint64 {
-	return fhevm.FheLibRequiredGas(accessibleState.Interpreter().evm.FhevmEnvironment(), input)
+func (c *fheLib) RequiredGas(accessibleState PrecompileAccessibleState, suppliedGas uint64, input []byte) uint64 {
+	return fhevm.FheLibRequiredGas(accessibleState.Interpreter().evm.FhevmEnvironment(), suppliedGas, input)
 }
 
 func (c *fheLib) Run(accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, readOnly bool) ([]byte, error) {
@@ -203,7 +203,7 @@ func (c *fheLib) Run(accessibleState PrecompileAccessibleState, caller common.Ad
 // ECRECOVER implemented as a native contract.
 type ecrecover struct{}
 
-func (c *ecrecover) RequiredGas(accessibleState PrecompileAccessibleState, input []byte) uint64 {
+func (c *ecrecover) RequiredGas(accessibleState PrecompileAccessibleState, suppliedGas uint64, input []byte) uint64 {
 	return params.EcrecoverGas
 }
 
@@ -245,7 +245,7 @@ type sha256hash struct{}
 //
 // This method does not require any overflow checking as the input size gas costs
 // required for anything significant is so high it's impossible to pay for.
-func (c *sha256hash) RequiredGas(accessibleState PrecompileAccessibleState, input []byte) uint64 {
+func (c *sha256hash) RequiredGas(accessibleState PrecompileAccessibleState, suppliedGas uint64, input []byte) uint64 {
 	return uint64(len(input)+31)/32*params.Sha256PerWordGas + params.Sha256BaseGas
 }
 func (c *sha256hash) Run(accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, readOnly bool) ([]byte, error) {
@@ -260,7 +260,7 @@ type ripemd160hash struct{}
 //
 // This method does not require any overflow checking as the input size gas costs
 // required for anything significant is so high it's impossible to pay for.
-func (c *ripemd160hash) RequiredGas(accessibleState PrecompileAccessibleState, input []byte) uint64 {
+func (c *ripemd160hash) RequiredGas(accessibleState PrecompileAccessibleState, suppliedGas uint64, input []byte) uint64 {
 	return uint64(len(input)+31)/32*params.Ripemd160PerWordGas + params.Ripemd160BaseGas
 }
 func (c *ripemd160hash) Run(accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, readOnly bool) ([]byte, error) {
@@ -276,7 +276,7 @@ type dataCopy struct{}
 //
 // This method does not require any overflow checking as the input size gas costs
 // required for anything significant is so high it's impossible to pay for.
-func (c *dataCopy) RequiredGas(accessibleState PrecompileAccessibleState, input []byte) uint64 {
+func (c *dataCopy) RequiredGas(accessibleState PrecompileAccessibleState, suppliedGas uint64, input []byte) uint64 {
 	return uint64(len(input)+31)/32*params.IdentityPerWordGas + params.IdentityBaseGas
 }
 func (c *dataCopy) Run(accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, readOnly bool) ([]byte, error) {
@@ -335,7 +335,7 @@ func modexpMultComplexity(x *big.Int) *big.Int {
 }
 
 // RequiredGas returns the gas required to execute the pre-compiled contract.
-func (c *bigModExp) RequiredGas(accessibleState PrecompileAccessibleState, input []byte) uint64 {
+func (c *bigModExp) RequiredGas(accessibleState PrecompileAccessibleState, suppliedGas uint64, input []byte) uint64 {
 	var (
 		baseLen = new(big.Int).SetBytes(getData(input, 0, 32))
 		expLen  = new(big.Int).SetBytes(getData(input, 32, 32))
@@ -481,7 +481,7 @@ func runBn256Add(input []byte) ([]byte, error) {
 type bn256AddIstanbul struct{}
 
 // RequiredGas returns the gas required to execute the pre-compiled contract.
-func (c *bn256AddIstanbul) RequiredGas(accessibleState PrecompileAccessibleState, input []byte) uint64 {
+func (c *bn256AddIstanbul) RequiredGas(accessibleState PrecompileAccessibleState, suppliedGas uint64, input []byte) uint64 {
 	return params.Bn256AddGasIstanbul
 }
 
@@ -494,7 +494,7 @@ func (c *bn256AddIstanbul) Run(accessibleState PrecompileAccessibleState, caller
 type bn256AddByzantium struct{}
 
 // RequiredGas returns the gas required to execute the pre-compiled contract.
-func (c *bn256AddByzantium) RequiredGas(accessibleState PrecompileAccessibleState, input []byte) uint64 {
+func (c *bn256AddByzantium) RequiredGas(accessibleState PrecompileAccessibleState, suppliedGas uint64, input []byte) uint64 {
 	return params.Bn256AddGasByzantium
 }
 
@@ -519,7 +519,7 @@ func runBn256ScalarMul(input []byte) ([]byte, error) {
 type bn256ScalarMulIstanbul struct{}
 
 // RequiredGas returns the gas required to execute the pre-compiled contract.
-func (c *bn256ScalarMulIstanbul) RequiredGas(accessibleState PrecompileAccessibleState, input []byte) uint64 {
+func (c *bn256ScalarMulIstanbul) RequiredGas(accessibleState PrecompileAccessibleState, suppliedGas uint64, input []byte) uint64 {
 	return params.Bn256ScalarMulGasIstanbul
 }
 
@@ -532,7 +532,7 @@ func (c *bn256ScalarMulIstanbul) Run(accessibleState PrecompileAccessibleState, 
 type bn256ScalarMulByzantium struct{}
 
 // RequiredGas returns the gas required to execute the pre-compiled contract.
-func (c *bn256ScalarMulByzantium) RequiredGas(accessibleState PrecompileAccessibleState, input []byte) uint64 {
+func (c *bn256ScalarMulByzantium) RequiredGas(accessibleState PrecompileAccessibleState, suppliedGas uint64, input []byte) uint64 {
 	return params.Bn256ScalarMulGasByzantium
 }
 
@@ -587,7 +587,7 @@ func runBn256Pairing(input []byte) ([]byte, error) {
 type bn256PairingIstanbul struct{}
 
 // RequiredGas returns the gas required to execute the pre-compiled contract.
-func (c *bn256PairingIstanbul) RequiredGas(accessibleState PrecompileAccessibleState, input []byte) uint64 {
+func (c *bn256PairingIstanbul) RequiredGas(accessibleState PrecompileAccessibleState, suppliedGas uint64, input []byte) uint64 {
 	return params.Bn256PairingBaseGasIstanbul + uint64(len(input)/192)*params.Bn256PairingPerPointGasIstanbul
 }
 
@@ -600,7 +600,7 @@ func (c *bn256PairingIstanbul) Run(accessibleState PrecompileAccessibleState, ca
 type bn256PairingByzantium struct{}
 
 // RequiredGas returns the gas required to execute the pre-compiled contract.
-func (c *bn256PairingByzantium) RequiredGas(accessibleState PrecompileAccessibleState, input []byte) uint64 {
+func (c *bn256PairingByzantium) RequiredGas(accessibleState PrecompileAccessibleState, suppliedGas uint64, input []byte) uint64 {
 	return params.Bn256PairingBaseGasByzantium + uint64(len(input)/192)*params.Bn256PairingPerPointGasByzantium
 }
 
@@ -610,7 +610,7 @@ func (c *bn256PairingByzantium) Run(accessibleState PrecompileAccessibleState, c
 
 type blake2F struct{}
 
-func (c *blake2F) RequiredGas(accessibleState PrecompileAccessibleState, input []byte) uint64 {
+func (c *blake2F) RequiredGas(accessibleState PrecompileAccessibleState, suppliedGas uint64, input []byte) uint64 {
 	// If the input is malformed, we can't calculate the gas, return 0 and let the
 	// actual call choke and fault.
 	if len(input) != blake2FInputLength {
@@ -680,7 +680,7 @@ var (
 type bls12381G1Add struct{}
 
 // RequiredGas returns the gas required to execute the pre-compiled contract.
-func (c *bls12381G1Add) RequiredGas(accessibleState PrecompileAccessibleState, input []byte) uint64 {
+func (c *bls12381G1Add) RequiredGas(accessibleState PrecompileAccessibleState, suppliedGas uint64, input []byte) uint64 {
 	return params.Bls12381G1AddGas
 }
 
@@ -718,7 +718,7 @@ func (c *bls12381G1Add) Run(accessibleState PrecompileAccessibleState, caller co
 type bls12381G1Mul struct{}
 
 // RequiredGas returns the gas required to execute the pre-compiled contract.
-func (c *bls12381G1Mul) RequiredGas(accessibleState PrecompileAccessibleState, input []byte) uint64 {
+func (c *bls12381G1Mul) RequiredGas(accessibleState PrecompileAccessibleState, suppliedGas uint64, input []byte) uint64 {
 	return params.Bls12381G1MulGas
 }
 
@@ -754,7 +754,7 @@ func (c *bls12381G1Mul) Run(accessibleState PrecompileAccessibleState, caller co
 type bls12381G1MultiExp struct{}
 
 // RequiredGas returns the gas required to execute the pre-compiled contract.
-func (c *bls12381G1MultiExp) RequiredGas(accessibleState PrecompileAccessibleState, input []byte) uint64 {
+func (c *bls12381G1MultiExp) RequiredGas(accessibleState PrecompileAccessibleState, suppliedGas uint64, input []byte) uint64 {
 	// Calculate G1 point, scalar value pair length
 	k := len(input) / 160
 	if k == 0 {
@@ -811,7 +811,7 @@ func (c *bls12381G1MultiExp) Run(accessibleState PrecompileAccessibleState, call
 type bls12381G2Add struct{}
 
 // RequiredGas returns the gas required to execute the pre-compiled contract.
-func (c *bls12381G2Add) RequiredGas(accessibleState PrecompileAccessibleState, input []byte) uint64 {
+func (c *bls12381G2Add) RequiredGas(accessibleState PrecompileAccessibleState, suppliedGas uint64, input []byte) uint64 {
 	return params.Bls12381G2AddGas
 }
 
@@ -849,7 +849,7 @@ func (c *bls12381G2Add) Run(accessibleState PrecompileAccessibleState, caller co
 type bls12381G2Mul struct{}
 
 // RequiredGas returns the gas required to execute the pre-compiled contract.
-func (c *bls12381G2Mul) RequiredGas(accessibleState PrecompileAccessibleState, input []byte) uint64 {
+func (c *bls12381G2Mul) RequiredGas(accessibleState PrecompileAccessibleState, suppliedGas uint64, input []byte) uint64 {
 	return params.Bls12381G2MulGas
 }
 
@@ -885,7 +885,7 @@ func (c *bls12381G2Mul) Run(accessibleState PrecompileAccessibleState, caller co
 type bls12381G2MultiExp struct{}
 
 // RequiredGas returns the gas required to execute the pre-compiled contract.
-func (c *bls12381G2MultiExp) RequiredGas(accessibleState PrecompileAccessibleState, input []byte) uint64 {
+func (c *bls12381G2MultiExp) RequiredGas(accessibleState PrecompileAccessibleState, suppliedGas uint64, input []byte) uint64 {
 	// Calculate G2 point, scalar value pair length
 	k := len(input) / 288
 	if k == 0 {
@@ -942,7 +942,7 @@ func (c *bls12381G2MultiExp) Run(accessibleState PrecompileAccessibleState, call
 type bls12381Pairing struct{}
 
 // RequiredGas returns the gas required to execute the pre-compiled contract.
-func (c *bls12381Pairing) RequiredGas(accessibleState PrecompileAccessibleState, input []byte) uint64 {
+func (c *bls12381Pairing) RequiredGas(accessibleState PrecompileAccessibleState, suppliedGas uint64, input []byte) uint64 {
 	return params.Bls12381PairingBaseGas + uint64(len(input)/384)*params.Bls12381PairingPerPairGas
 }
 
@@ -1021,7 +1021,7 @@ func decodeBLS12381FieldElement(in []byte) ([]byte, error) {
 type bls12381MapG1 struct{}
 
 // RequiredGas returns the gas required to execute the pre-compiled contract.
-func (c *bls12381MapG1) RequiredGas(accessibleState PrecompileAccessibleState, input []byte) uint64 {
+func (c *bls12381MapG1) RequiredGas(accessibleState PrecompileAccessibleState, suppliedGas uint64, input []byte) uint64 {
 	return params.Bls12381MapG1Gas
 }
 
@@ -1056,7 +1056,7 @@ func (c *bls12381MapG1) Run(accessibleState PrecompileAccessibleState, caller co
 type bls12381MapG2 struct{}
 
 // RequiredGas returns the gas required to execute the pre-compiled contract.
-func (c *bls12381MapG2) RequiredGas(accessibleState PrecompileAccessibleState, input []byte) uint64 {
+func (c *bls12381MapG2) RequiredGas(accessibleState PrecompileAccessibleState, suppliedGas uint64, input []byte) uint64 {
 	return params.Bls12381MapG2Gas
 }
 
@@ -1098,7 +1098,7 @@ func (c *bls12381MapG2) Run(accessibleState PrecompileAccessibleState, caller co
 type kzgPointEvaluation struct{}
 
 // RequiredGas estimates the gas required for running the point evaluation precompile.
-func (b *kzgPointEvaluation) RequiredGas(accessibleState PrecompileAccessibleState, input []byte) uint64 {
+func (b *kzgPointEvaluation) RequiredGas(accessibleState PrecompileAccessibleState, suppliedGas uint64, input []byte) uint64 {
 	return params.BlobTxPointEvaluationPrecompileGas
 }
 
